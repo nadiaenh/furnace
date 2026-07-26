@@ -7,9 +7,9 @@ Autoscaled pool of dockerized EC2 VMs, leasable via an authenticated Lambda brok
 ## Prerequisites
 
 - macOS with [Homebrew](https://brew.sh)
-- a GitHub repo to push this to (setup.sh does not create it — see below)
+- a GitHub repo to push this to
 
-Everything else (AWS CLI + auth, Pulumi CLI, Node, pnpm, gh CLI + auth) is installed and configured by `setup.sh` if missing.
+Everything else (AWS CLI + auth, Pulumi CLI, Node, pnpm, gh CLI + auth) is installed and configured by `setup.sh`.
 
 ## Setup
 
@@ -19,9 +19,10 @@ Everything else (AWS CLI + auth, Pulumi CLI, Node, pnpm, gh CLI + auth) is insta
 
 This bootstraps everything needed to deploy. You will only be prompted to manually provide:
 
-1. the GitHub repo name (`owner/repo`)
-2. GitHub CLI browser sign-in, if not already logged in
-3. a Pulumi passphrase of your choice, if `.pulumi-passphrase` doesn't exist yet
+1. `aws login` if not already logged in.
+2. the GitHub repo name (`owner/repo`)
+3. GitHub CLI browser sign-in, if not already logged in
+4. a Pulumi passphrase of your choice, if `.pulumi-passphrase` doesn't exist yet
 
 ## Deploy
 
