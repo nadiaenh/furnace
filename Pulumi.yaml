@@ -1,0 +1,6 @@
+name: vm-service
+runtime:
+  name: nodejs
+  options:
+    typescript: true
+description: Autoscaled pool of dockerized EC2 VMs, leasable via an authenticated Lambda broker

@@ -1,0 +1,6 @@
+node_modules/
+bin/
+.pulumi-passphrase
+broker/node_modules/
+Pulumi.*.yaml
+!Pulumi.yaml

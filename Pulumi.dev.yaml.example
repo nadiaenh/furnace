@@ -1,0 +1,4 @@
+config:
+  aws:region: us-west-2
+  vm-service:apiKey:
+    secure: <run `pulumi config set --secret apiKey <value>` to generate>
