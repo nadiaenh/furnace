@@ -18,7 +18,6 @@ Everything else (AWS CLI + auth, Pulumi CLI, Node, pnpm, gh CLI + auth) is insta
 ```
 
 This bootstraps everything needed to deploy. You will only be prompted to manually provide:
-
 1. `aws login` if not already logged in.
 2. GitHub CLI browser sign-in, if not already logged in
 3. a Pulumi passphrase of your choice
