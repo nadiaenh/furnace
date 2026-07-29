@@ -20,21 +20,20 @@ Everything else (AWS CLI + auth, Pulumi CLI, Node, pnpm, gh CLI + auth) is insta
 This bootstraps everything needed to deploy. You will only be prompted to manually provide:
 
 1. `aws login` if not already logged in.
-2. the GitHub repo name (`owner/repo`)
-3. GitHub CLI browser sign-in, if not already logged in
-4. a Pulumi passphrase of your choice, if `.pulumi-passphrase` doesn't exist yet
+2. GitHub CLI browser sign-in, if not already logged in
+3. a Pulumi passphrase of your choice
 
 ## Deploy
 
 ```sh
 # refresh AWS credentials if needed.
-aws sts get-caller-identity >/dev/null 2>&1 || echo "run: aws login"
+aws sts get-caller-identity >/dev/null 2>&1 || aws login
 
 # get Pulumi passphrase used to encrypt state in S3.
 export PULUMI_CONFIG_PASSPHRASE=$(cat .pulumi-passphrase)
 
 # deploy.
-pulumi up
+pulumi up --refresh
 ```
 
 ## Use
