@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 
-# prompt for and validate the target repo.
-read -rep "→ github repo for CI (owner/repo, e.g. jane/vm-service): " gh_repo
-gh_repo="${gh_repo// /}"
-[[ "$gh_repo" =~ ^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$ ]] || fail "invalid repo name '$gh_repo'" "expected owner/repo, e.g. jane/vm-service"
+# derive the target repo from the authenticated gh user.
+gh_user=$(gh api user --jq '.login') || fail "failed to determine github user" "make sure gh cli is authenticated"
+gh_repo="${gh_user}/vm-service"
 quiet gh repo view "$gh_repo" \
   || fail "repo $gh_repo not found on github (or no access)" "create it first (gh repo create $gh_repo --private) or check the name"
 ok "repo $gh_repo exists on github"

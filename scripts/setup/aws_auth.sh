@@ -4,6 +4,9 @@
 if aws sts get-caller-identity >/dev/null 2>&1; then
   ok "aws credentials already configured"
 else
+  if grep -q "credential_process" ~/.aws/config 2>/dev/null; then
+    sed -i '' '/credential_process/d' ~/.aws/config
+  fi
   echo
   echo "→ aws isn't authenticated yet. run this, then re-run ./setup.sh:"
   echo
@@ -13,7 +16,7 @@ else
 fi
 
 # check that Pulumi can use the AWS CLI credentials.
-if ! grep -q "^credential_process" ~/.aws/config 2>/dev/null; then
+if ! grep -q "credential_process" ~/.aws/config 2>/dev/null; then
   printf 'credential_process = aws configure export-credentials --format process\n' >> ~/.aws/config
   ok "added credential_process to ~/.aws/config so pulumi can use the cli login session"
 else
