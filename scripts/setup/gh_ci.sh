@@ -67,9 +67,8 @@ quiet aws iam put-role-policy --role-name "$role_name" --policy-name "deploy" --
   || fail "failed to attach gha deploy permissions" "see error output below"
 ok "gha deploy role permissions set"
 
-# set the repo secrets for GitHub CI/CD.
-role_arn=$(aws iam get-role --role-name "$role_name" --query Role.Arn --output text)
-quiet gh secret set AWS_ROLE_ARN --repo "$gh_repo" --body "$role_arn" || fail "failed to set AWS_ROLE_ARN secret" "see error output below"
+# set the repo variable and secrets for GitHub CI/CD.
+quiet gh variable set AWS_ACCOUNT_ID --repo "$gh_repo" --body "$account_id" || fail "failed to set AWS_ACCOUNT_ID variable" "see error output below"
 quiet gh secret set PULUMI_CONFIG_PASSPHRASE --repo "$gh_repo" --body "$PULUMI_CONFIG_PASSPHRASE" || fail "failed to set PULUMI_CONFIG_PASSPHRASE secret" "see error output below"
 quiet gh secret set API_KEY --repo "$gh_repo" --body "$api_key" || fail "failed to set API_KEY secret" "see error output below"
-ok "github repo secrets set (AWS_ROLE_ARN, PULUMI_CONFIG_PASSPHRASE, API_KEY)"
+ok "github repo secrets set (AWS_ACCOUNT_ID, PULUMI_CONFIG_PASSPHRASE, API_KEY)"
