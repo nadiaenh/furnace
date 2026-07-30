@@ -4,7 +4,7 @@ import * as tls from "@pulumi/tls";
 import { subnets, ami, vmSecurityGroup } from "./networking";
 
 const config = new pulumi.Config();
-const dockerImage = config.get("dockerImage") ?? "nginx:alpine";
+const dockerImage = config.get("dockerImage") ?? "bkimminich/juice-shop";
 
 // create keypair for SSH access to the VM.
 const sshKey = new tls.PrivateKey("ssh-key", { algorithm: "ED25519" });
@@ -22,7 +22,7 @@ const userData = Buffer.from(
     "#!/bin/bash",
     "dnf install -y docker",
     "systemctl enable --now docker",
-    `docker run -d --restart unless-stopped -p 8080:80 ${dockerImage}`,
+    `docker run -d --restart unless-stopped -p 8080:3000 ${dockerImage}`,
   ].join("\n"),
 ).toString("base64");
 
