@@ -16,13 +16,14 @@ export const sshKeyParam = new aws.ssm.Parameter("ssh-key-param", {
   value: sshKey.privateKeyOpenssh,
 });
 
-// start Docker and run the container on port 8080.
 const userData = Buffer.from(
   [
     "#!/bin/bash",
     "dnf install -y docker",
     "systemctl enable --now docker",
+    "mkdir -p /opt/reports",
     `docker run -d --restart unless-stopped -p 8080:3000 ${dockerImage}`,
+    "docker run -d --restart unless-stopped --name report-server -p 8081:8081 -v /opt/reports:/usr/share/nginx/html:ro nginx:alpine sh -c \"sed -i 's/listen *80;/listen 8081;/' /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'\"",
   ].join("\n"),
 ).toString("base64");
 
