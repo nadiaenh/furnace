@@ -5,6 +5,7 @@ import { subnets, ami, vmSecurityGroup } from "./networking";
 
 const config = new pulumi.Config();
 const dockerImage = config.get("dockerImage") ?? "bkimminich/juice-shop";
+const groqApiKey = config.requireSecret("groqApiKey");
 
 // create keypair for SSH access to the VM.
 const sshKey = new tls.PrivateKey("ssh-key", { algorithm: "ED25519" });
@@ -14,6 +15,42 @@ const keyPair = new aws.ec2.KeyPair("vm-keypair", {
 export const sshKeyParam = new aws.ssm.Parameter("ssh-key-param", {
   type: "SecureString",
   value: sshKey.privateKeyOpenssh,
+});
+
+export const groqApiKeyParam = new aws.ssm.Parameter("groq-api-key-param", {
+  type: "SecureString",
+  value: groqApiKey,
+});
+
+const vmRole = new aws.iam.Role("vm-role", {
+  assumeRolePolicy: JSON.stringify({
+    Version: "2012-10-17",
+    Statement: [
+      {
+        Effect: "Allow",
+        Principal: { Service: "ec2.amazonaws.com" },
+        Action: "sts:AssumeRole",
+      },
+    ],
+  }),
+});
+
+new aws.iam.RolePolicy("vm-role-policy", {
+  role: vmRole.id,
+  policy: pulumi.jsonStringify({
+    Version: "2012-10-17",
+    Statement: [
+      {
+        Effect: "Allow",
+        Action: "ssm:GetParameter",
+        Resource: groqApiKeyParam.arn,
+      },
+    ],
+  }),
+});
+
+const vmInstanceProfile = new aws.iam.InstanceProfile("vm-instance-profile", {
+  role: vmRole.name,
 });
 
 const userData = Buffer.from(
@@ -32,6 +69,7 @@ const launchTemplate = new aws.ec2.LaunchTemplate("vm", {
   instanceType: "t3.micro",
   keyName: keyPair.keyName,
   vpcSecurityGroupIds: [vmSecurityGroup.id],
+  iamInstanceProfile: { arn: vmInstanceProfile.arn },
   userData: userData,
 });
 
