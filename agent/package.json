@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.32.0",
+    "groq-sdk": "^1.4.1",
     "playwright": "^1.48.0"
   }
 }
