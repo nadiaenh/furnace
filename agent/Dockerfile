@@ -10,6 +10,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm install
-COPY agent.mjs report-template.html ./
+COPY agent.mjs tools.mjs report-template.html ./
 
 ENTRYPOINT ["node", "agent.mjs"]
