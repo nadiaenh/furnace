@@ -22,6 +22,12 @@ export const vmSecurityGroup = new aws.ec2.SecurityGroup("vm-sg", {
       toPort: 8080,
       cidrBlocks: ["0.0.0.0/0"],
     },
+    {
+      protocol: "tcp",
+      fromPort: 8081,
+      toPort: 8081,
+      cidrBlocks: ["0.0.0.0/0"],
+    },
   ],
   egress: [
     { protocol: "-1", fromPort: 0, toPort: 0, cidrBlocks: ["0.0.0.0/0"] },
