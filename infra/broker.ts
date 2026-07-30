@@ -80,8 +80,14 @@ const broker = new aws.lambda.Function("broker", {
   },
 });
 
-// TODO: switch to public access.
 export const brokerFunctionUrl = new aws.lambda.FunctionUrl("broker-url", {
   functionName: broker.name,
-  authorizationType: "AWS_IAM",
+  authorizationType: "NONE",
+});
+
+new aws.lambda.Permission("broker-url-public", {
+  action: "lambda:InvokeFunctionUrl",
+  function: broker.name,
+  principal: "*",
+  functionUrlAuthType: "NONE",
 });
