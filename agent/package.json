@@ -1,5 +1,5 @@
 {
-  "name": "sockpuppet-agent",
+  "name": "furnace-agent",
   "private": true,
   "type": "module",
   "dependencies": {

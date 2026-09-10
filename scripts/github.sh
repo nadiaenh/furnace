@@ -28,7 +28,7 @@ owner_id=$(gh api "repos/${gh_repo}" --jq '.owner.id')
 repo_id=$(gh api "repos/${gh_repo}" --jq '.id')
 # Bind the role to this exact repo by numeric owner/repo id, not just the name.
 sub_pattern="repo:${owner}@${owner_id}/${repo_name}@${repo_id}:*"
-role_name="sockpuppet-gha-deploy"
+role_name="furnace-gha-deploy"
 
 trust_policy=$(cat <<JSON
 {

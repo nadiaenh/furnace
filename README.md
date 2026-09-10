@@ -1,6 +1,6 @@
 <img src="https://img.shields.io/badge/Pulumi-8A3391?logo=pulumi&logoColor=white" alt="Pulumi">
 <img src="https://custom-icon-badges.demolab.com/badge/AWS-%23FF9900.svg?logo=aws&logoColor=white" alt="AWS EC2 and Lambda"> 
-<a href=".github/workflows/deploy.yml"><img src="https://github.com/nadiaenh/sockpuppet/actions/workflows/deploy.yml/badge.svg" alt="Deploy"></a> <a href=".github/workflows/lease.yml"><img src="https://github.com/nadiaenh/sockpuppet/actions/workflows/lease.yml/badge.svg" alt="Lease check"></a>
+<a href=".github/workflows/deploy.yml"><img src="https://github.com/nadiaenh/furnace/actions/workflows/deploy.yml/badge.svg" alt="Deploy"></a> <a href=".github/workflows/lease.yml"><img src="https://github.com/nadiaenh/furnace/actions/workflows/lease.yml/badge.svg" alt="Lease check"></a>
 
 **furnace** is an AWS-based Pulumi-self-hosted VM rental service meant to be served on the public internet (unlike [cinders](https://github.com/nadiaenh/cinders/tree/main)).
 
@@ -9,8 +9,8 @@
 ## Setup
 
 ```sh
-git clone git@github.com:nadiaenh/sockpuppet.git
-cd sockpuppet
+git clone git@github.com:nadiaenh/furnace.git
+cd furnace
 ./setup.sh
 
 # Deploy to your AWS account.

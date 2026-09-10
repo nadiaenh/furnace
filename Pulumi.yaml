@@ -1,4 +1,4 @@
-name: sockpuppet
+name: furnace
 runtime:
   name: nodejs
   options:

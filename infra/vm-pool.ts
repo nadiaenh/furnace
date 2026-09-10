@@ -5,7 +5,7 @@ import { subnets, ami, vmSecurityGroup } from "./networking";
 
 const config = new pulumi.Config();
 const dockerImage = config.get("dockerImage") ?? "bkimminich/juice-shop";
-const agentGitUrl = config.get("agentGitUrl") ?? "https://github.com/nadiaenh/sockpuppet.git";
+const agentGitUrl = config.get("agentGitUrl") ?? "https://github.com/nadiaenh/furnace.git";
 const groqApiKey = config.requireSecret("groqApiKey");
 
 const sshKey = new tls.PrivateKey("ssh-key", { algorithm: "ED25519" });
@@ -62,12 +62,12 @@ const userData = pulumi.all([dockerImage, groqApiKeyParam.name, agentGitUrl]).ap
         "systemctl enable --now docker",
         "mkdir -p /opt/reports",
         "docker run -d --restart unless-stopped --name report-server -p 8081:8081 -v /opt/reports:/usr/share/nginx/html:ro nginx:alpine sh -c \"sed -i 's/listen *80;/listen 8081;/' /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'\"",
-        `git clone --depth 1 ${gitUrl} /opt/sockpuppet`,
-        "docker build -t sockpuppet-agent:latest /opt/sockpuppet/agent",
+        `git clone --depth 1 ${gitUrl} /opt/furnace`,
+        "docker build -t furnace-agent:latest /opt/furnace/agent",
         `GROQ_API_KEY=$(aws ssm get-parameter --name "${groqParamName}" --with-decryption --query Parameter.Value --output text --region $(curl -s http://169.254.169.254/latest/meta-data/placement/region))`,
         "docker network create juicenet || true",
         `docker run -d --restart unless-stopped --network juicenet -p 8080:3000 --name juice-shop ${image}`,
-        `docker run -d --restart unless-stopped --network juicenet --name agent -e TARGET_URL=http://juice-shop:3000 -e GROQ_API_KEY="$GROQ_API_KEY" -e REPORT_PATH=/reports/report.html -v /opt/reports:/reports sockpuppet-agent:latest`,
+        `docker run -d --restart unless-stopped --network juicenet --name agent -e TARGET_URL=http://juice-shop:3000 -e GROQ_API_KEY="$GROQ_API_KEY" -e REPORT_PATH=/reports/report.html -v /opt/reports:/reports furnace-agent:latest`,
       ].join("\n"),
     ).toString("base64"),
 );
@@ -87,7 +87,7 @@ export const vmPool = new aws.autoscaling.Group("vm-pool", {
   desiredCapacity: 2,
   vpcZoneIdentifiers: subnets.ids,
   launchTemplate: { id: launchTemplate.id, version: "$Latest" },
-  tags: [{ key: "Name", value: "sockpuppet-worker", propagateAtLaunch: true }],
+  tags: [{ key: "Name", value: "furnace-worker", propagateAtLaunch: true }],
 });
 
 new aws.autoscaling.Policy("vm-pool-cpu-scaling", {

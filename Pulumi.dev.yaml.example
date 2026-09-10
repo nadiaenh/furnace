@@ -1,8 +1,8 @@
 # setup.sh generates the real Pulumi.dev.yaml. This shows the config it sets.
 config:
   aws:region: us-west-2
-  sockpuppet:apiKey:
+  furnace:apiKey:
     secure: <pulumi config set --secret apiKey "$(openssl rand -hex 24)">
-  sockpuppet:groqApiKey:
+  furnace:groqApiKey:
     secure: <pulumi config set --secret groqApiKey YOUR_GROQ_KEY>
-  sockpuppet:agentGitUrl: https://github.com/OWNER/sockpuppet.git
+  furnace:agentGitUrl: https://github.com/OWNER/furnace.git

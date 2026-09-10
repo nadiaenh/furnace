@@ -50,7 +50,7 @@ jobs:
       - name: Assume the AWS deploy role
         uses: aws-actions/configure-aws-credentials@v6
         with:
-          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/sockpuppet-gha-deploy
+          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/furnace-gha-deploy
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Log Pulumi into the S3 backend
@@ -59,7 +59,7 @@ jobs:
         run: |
           account_id=$(aws sts get-caller-identity --query Account --output text)
           echo "::add-mask::${account_id}"
-          pulumi login "s3://sockpuppet-pulumi-state-${account_id}?region=${AWS_REGION}"
+          pulumi login "s3://furnace-pulumi-state-${account_id}?region=${AWS_REGION}"
 
       - name: Apply the stack
         env:
