@@ -34,6 +34,7 @@ else
   quiet aws s3api put-public-access-block --bucket "$bucket" --public-access-block-configuration \
     "BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true" \
     || fail "could not lock down the state bucket"
+  quiet aws s3api wait bucket-exists --bucket "$bucket" || fail "state bucket did not become available"
   ok "created state bucket $bucket"
 fi
 
