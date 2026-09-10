@@ -80,3 +80,12 @@ export const brokerFunctionUrl = new aws.lambda.FunctionUrl("broker-url", {
   functionName: broker.name,
   authorizationType: "NONE",
 });
+
+// AWS rejects unsigned Function URL requests with 403 unless this permission
+// exists, even with authorizationType NONE.
+new aws.lambda.Permission("broker-url-invoke", {
+  action: "lambda:InvokeFunctionUrl",
+  function: broker.name,
+  principal: "*",
+  functionUrlAuthType: "NONE",
+});
