@@ -19,7 +19,7 @@ quiet pnpm install || fail "pnpm install failed"
 quiet bash -c "cd broker && pnpm install --prod --config.node-linker=hoisted" || fail "broker pnpm install failed"
 ok "installed dependencies"
 
-bucket="vm-service-pulumi-state-${account_id}"
+bucket="sockpuppet-pulumi-state-${account_id}"
 if quiet aws s3api head-bucket --bucket "$bucket"; then
   ok "state bucket $bucket exists"
 else

@@ -1,4 +1,4 @@
-name: vm-service
+name: sockpuppet
 runtime:
   name: nodejs
   options:

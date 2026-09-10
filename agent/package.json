@@ -1,5 +1,5 @@
 {
-  "name": "vm-service-agent",
+  "name": "sockpuppet-agent",
   "private": true,
   "type": "module",
   "dependencies": {
