@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="272" viewBox="0 0 720 272" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="14">
+  <rect width="720" height="272" rx="10" fill="#0d1117"/>
+  <circle cx="24" cy="24" r="6" fill="#72d6c9"/>
+  <circle cx="44" cy="24" r="6" fill="#3b4048"/>
+  <circle cx="64" cy="24" r="6" fill="#3b4048"/>
+  <text fill="#8b949e" x="20" y="66">$ resp=$(curl -sX POST "${url}lease" -H "x-api-key: $key")</text>
+  <text fill="#c9d1d9" x="20" y="90">{ "instanceId": "i-0a3f...", "publicIp": "54.12.x.x", "sshKey": "-----BEGIN..." }</text>
+  <text fill="#8b949e" x="20" y="126">$ ssh -i key.pem ec2-user@54.12.x.x</text>
+  <text fill="#c9d1d9" x="20" y="150">[ec2-user@ip-10-0-1-7 ~]$ docker ps --format '{{.Names}}'</text>
+  <text fill="#c9d1d9" x="20" y="170">juice-shop  agent  report-server</text>
+  <text fill="#8b949e" x="20" y="206">$ curl -sX POST "${url}release" -d "{\"instanceId\":\"i-0a3f...\"}"</text>
+  <text fill="#72d6c9" x="20" y="230">{ "released": "i-0a3f..." }</text>
+</svg>

@@ -8,7 +8,6 @@ const dockerImage = config.get("dockerImage") ?? "bkimminich/juice-shop";
 const agentGitUrl = config.get("agentGitUrl") ?? "https://github.com/nadiaenh/vm-service.git";
 const groqApiKey = config.requireSecret("groqApiKey");
 
-// create keypair for SSH access to the VM.
 const sshKey = new tls.PrivateKey("ssh-key", { algorithm: "ED25519" });
 const keyPair = new aws.ec2.KeyPair("vm-keypair", {
   publicKey: sshKey.publicKeyOpenssh,
@@ -82,7 +81,6 @@ const launchTemplate = new aws.ec2.LaunchTemplate("vm", {
   userData: userData,
 });
 
-// autoscale the VM pool.
 export const vmPool = new aws.autoscaling.Group("vm-pool", {
   minSize: 1,
   maxSize: 3,
@@ -103,5 +101,4 @@ new aws.autoscaling.Policy("vm-pool-cpu-scaling", {
   },
 });
 
-// broker will reclaim an instance after 60 minutes.
 export const leaseTtlMinutes = config.getNumber("leaseTtlMinutes") ?? 60;

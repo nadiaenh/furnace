@@ -1,4 +1,8 @@
+# setup.sh generates the real Pulumi.dev.yaml. This shows the config it sets.
 config:
   aws:region: us-west-2
   vm-service:apiKey:
-    secure: <run `pulumi config set --secret apiKey <value>` to generate>
+    secure: <pulumi config set --secret apiKey "$(openssl rand -hex 24)">
+  vm-service:groqApiKey:
+    secure: <pulumi config set --secret groqApiKey YOUR_GROQ_KEY>
+  vm-service:agentGitUrl: https://github.com/OWNER/vm-service.git

@@ -1,60 +1,90 @@
-name: deploy
+name: Deploy
+
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   id-token: write
   contents: write
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
 
 env:
   AWS_REGION: us-west-2
 
 jobs:
   deploy:
+    name: Deploy the Pulumi stack and publish a release
     runs-on: ubuntu-latest
     environment: production
-    timeout-minutes: 5
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v5
+      - name: Check out the source
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
-      - uses: pnpm/action-setup@v6
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
         with:
           version: 9
 
-      - uses: actions/setup-node@v6
+      - name: Set up Node.js 24
+        uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: pnpm
 
-      - uses: pulumi/actions@v7
+      - name: Set up the Pulumi CLI
+        uses: pulumi/actions@v7
 
-      - run: pnpm install
-      - run: cd broker && pnpm install --prod --config.node-linker=hoisted
+      - name: Install dependencies
+        run: |
+          pnpm install
+          cd broker && pnpm install --prod --config.node-linker=hoisted
 
-      - uses: aws-actions/configure-aws-credentials@v6
+      - name: Assume the AWS deploy role
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/vm-service-gha-deploy
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: pulumi login
+      - name: Log Pulumi into the S3 backend
+        env:
+          PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
         run: |
           account_id=$(aws sts get-caller-identity --query Account --output text)
           echo "::add-mask::${account_id}"
-          pulumi login "s3://vm-service-pulumi-state-${account_id}?region=${{ env.AWS_REGION }}"
-        env:
-          PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
+          pulumi login "s3://vm-service-pulumi-state-${account_id}?region=${AWS_REGION}"
 
-      - name: pulumi up
-        run: |
-          pulumi stack select dev
-          pulumi config set --secret apiKey "$API_KEY"
-          pulumi up --yes
+      - name: Apply the stack
         env:
           PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
           API_KEY: ${{ secrets.API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: |
+          pulumi stack select dev
+          pulumi config set --secret apiKey "$API_KEY"
+          pulumi config set --secret groqApiKey "$GROQ_API_KEY"
+          pulumi config set agentGitUrl "${{ github.server_url }}/${{ github.repository }}.git"
+          pulumi up --yes
 
-      - name: tag release
+      - name: Record the broker URL for the lease check
+        env:
+          PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          url=$(pulumi stack output brokerUrl)
+          gh variable set BROKER_URL --body "$url"
+
+      - name: Publish the deployment release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "deploy-$(date +%Y%m%d%H%M%S)-${GITHUB_SHA::7}" --title "Deploy ${GITHUB_SHA::7}" --notes "Automated deploy of ${GITHUB_SHA}" --target "${GITHUB_SHA}"
+        run: |
+          tag="deploy-$(date +%Y%m%d%H%M%S)-${GITHUB_SHA::7}"
+          gh release create "$tag" --title "Deploy ${GITHUB_SHA::7}" \
+            --notes "Automated deploy of ${GITHUB_SHA}" --target "${GITHUB_SHA}"

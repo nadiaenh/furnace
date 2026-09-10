@@ -1,0 +1,82 @@
+name: Lease check
+
+on:
+  schedule:
+    - cron: '23 7 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lease-check
+  cancel-in-progress: false
+
+jobs:
+  lease-and-release:
+    name: Lease a VM, reach the workload and release it
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check that the stack is deployed
+        id: check
+        env:
+          BROKER_URL: ${{ vars.BROKER_URL }}
+          API_KEY: ${{ secrets.API_KEY }}
+        run: |
+          if [ -n "$BROKER_URL" ] && [ -n "$API_KEY" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::BROKER_URL variable or API_KEY secret is unset; deploy the stack first."
+          fi
+
+      - name: Lease a VM from the broker
+        id: lease
+        if: steps.check.outputs.ready == 'true'
+        env:
+          BROKER_URL: ${{ vars.BROKER_URL }}
+          API_KEY: ${{ secrets.API_KEY }}
+        run: |
+          resp=$(curl -sf -X POST "${BROKER_URL}lease" -H "x-api-key: ${API_KEY}")
+          echo "$resp" | jq -e .instanceId > /dev/null
+          echo "instance_id=$(echo "$resp" | jq -r .instanceId)" >> "$GITHUB_OUTPUT"
+          echo "public_ip=$(echo "$resp" | jq -r .publicIp)" >> "$GITHUB_OUTPUT"
+          echo "$resp" | jq -r .sshKey > key.pem
+          chmod 600 key.pem
+
+      - name: Confirm SSH access to the instance
+        if: steps.lease.outputs.instance_id != ''
+        env:
+          IP: ${{ steps.lease.outputs.public_ip }}
+        run: |
+          for i in $(seq 1 18); do
+            if ssh -i key.pem -o StrictHostKeyChecking=no -o ConnectTimeout=5 "ec2-user@$IP" true 2>/dev/null; then
+              echo "ssh reachable after $((i * 10))s"; exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::SSH never became reachable"; exit 1
+
+      - name: Wait for the workload to answer on port 8080
+        if: steps.lease.outputs.instance_id != ''
+        env:
+          IP: ${{ steps.lease.outputs.public_ip }}
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf -o /dev/null "http://$IP:8080"; then
+              echo "workload up after $((i * 10))s"; exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::workload port 8080 never answered"; exit 1
+
+      - name: Release the VM
+        if: always() && steps.lease.outputs.instance_id != ''
+        env:
+          BROKER_URL: ${{ vars.BROKER_URL }}
+          API_KEY: ${{ secrets.API_KEY }}
+          INSTANCE_ID: ${{ steps.lease.outputs.instance_id }}
+        run: |
+          curl -sf -X POST "${BROKER_URL}release" -H "x-api-key: ${API_KEY}" \
+            -d "{\"instanceId\": \"${INSTANCE_ID}\"}" || echo "::warning::release call failed; the lease will expire on its own"

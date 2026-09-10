@@ -1,17 +1,15 @@
 import * as aws from "@pulumi/aws";
 
-// set a default VPC and its subnets.
 export const vpc = aws.ec2.getVpcOutput({ default: true });
 export const subnets = aws.ec2.getSubnetsOutput({
   filters: [{ name: "vpc-id", values: [vpc.id] }],
 });
 
-// latest Amazon Linux 2023 for the launch template.
 export const ami = aws.ssm.getParameterOutput({
   name: "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64",
 });
 
-// allow SSH and HTTP access to the VM + all outbound traffic.
+// 22 = SSH, 8080 = workload, 8081 = report server.
 export const vmSecurityGroup = new aws.ec2.SecurityGroup("vm-sg", {
   vpcId: vpc.id,
   ingress: [

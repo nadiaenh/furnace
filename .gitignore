@@ -1,6 +1,9 @@
 node_modules/
 bin/
 .pulumi-passphrase
+.env
 broker/node_modules/
 Pulumi.*.yaml
 !Pulumi.yaml
+.DS_Store
+*.pem

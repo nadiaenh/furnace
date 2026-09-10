@@ -1,68 +1,50 @@
-# vm-service
+<img src="https://img.shields.io/badge/Pulumi-8A3391?logo=pulumi&logoColor=white" alt="Pulumi">
+<img src="https://custom-icon-badges.demolab.com/badge/AWS-%23FF9900.svg?logo=aws&logoColor=white" alt="AWS EC2 and Lambda"> 
+<a href=".github/workflows/deploy.yml"><img src="https://github.com/nadiaenh/vm-service/actions/workflows/deploy.yml/badge.svg" alt="Deploy"></a> <a href=".github/workflows/lease.yml"><img src="https://github.com/nadiaenh/vm-service/actions/workflows/lease.yml/badge.svg" alt="Lease check"></a>
 
-Autoscaled pool of dockerized EC2 VMs, leasable via an authenticated Lambda broker. Pulumi state is self-hosted in S3.
+**furnace** is an AWS-based Pulumi-self-hosted VM rental service meant to be served on the public internet (unlike [cinders](https://github.com/nadiaenh/cinders/tree/main)).
 
-[![deploy](https://github.com/nadiaenh/vm-service/actions/workflows/deploy.yml/badge.svg)](https://github.com/nadiaenh/vm-service/actions/workflows/deploy.yml)
-
-## Prerequisites
-
-- macOS with [Homebrew](https://brew.sh)
-- a GitHub repo to push this to
-
-Everything else (AWS CLI + auth, Pulumi CLI, Node, pnpm, gh CLI + auth) is installed and configured by `setup.sh`.
+<p align="center"><img width="250" src="https://opengameart.org/sites/default/files/styles/medium/public/blacksmith-preview-optimized.gif" alt="A pixel art animation of a furnace"></p>
 
 ## Setup
 
 ```sh
+git clone git@github.com:nadiaenh/vm-service.git
+cd vm-service
 ./setup.sh
-```
 
-This bootstraps everything needed to deploy. You will only be prompted to manually provide:
-1. `aws login` if not already logged in.
-2. GitHub CLI browser sign-in, if not already logged in
-3. a Pulumi passphrase of your choice
-
-## Deploy
-
-```sh
-# refresh AWS credentials if needed.
-aws sts get-caller-identity >/dev/null 2>&1 || aws login
-
-# get Pulumi passphrase used to encrypt state in S3.
+# Deploy to your AWS account.
 export PULUMI_CONFIG_PASSPHRASE=$(cat .pulumi-passphrase)
-
-# deploy.
-pulumi up --refresh
+pulumi up
 ```
 
-## Use
+## Usage
 
 ```sh
+export PULUMI_CONFIG_PASSPHRASE=$(cat .pulumi-passphrase)
 url=$(pulumi stack output brokerUrl)
 key=$(pulumi config get apiKey)
 
+# Lease an instance.
 resp=$(curl -sX POST "${url}lease" -H "x-api-key: ${key}")
-# -> { "instanceId": "i-...", "publicIp": "...", "sshKey": "..." }
+# -> { "instanceId": "i-...", "publicIp": "...", "sshKey": "-----BEGIN..." }
 
-# export SSH key into file.
+# Save the key and SSH in.
 key_file=$(mktemp)
-echo "$resp" | jq -r .sshKey > "$key_file"
-chmod 600 "$key_file"
-
-# SSH into your leased instance using SSH key + instance public IP.
+echo "$resp" | jq -r .sshKey > "$key_file" && chmod 600 "$key_file"
 ssh -i "$key_file" "ec2-user@$(echo "$resp" | jq -r .publicIp)"
+
+# The default workload answers on port 8080.
+curl "http://$(echo "$resp" | jq -r .publicIp):8080"
+
+# Release when done.
+curl -sX POST "${url}release" -H "x-api-key: ${key}" \
+  -d "{\"instanceId\": \"$(echo "$resp" | jq -r .instanceId)\"}"
+
+# Set a different workload to run.
+pulumi config set dockerImage <image>
 ```
 
-Release when done:
+## Demo
 
-```sh
-curl -sX POST "${url}release" -H "x-api-key: ${key}" -d "{\"instanceId\": \"$(echo "$resp" | jq -r .instanceId)\"}"
-```
-
-The workload container listens on port 8080 (`curl http://<publicIp>:8080`).
-
-## Tear down
-
-```sh
-pulumi destroy
-```
+![Lease a VM, SSH in, release it](assets/demo.svg)

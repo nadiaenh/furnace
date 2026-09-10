@@ -1,4 +1,4 @@
-import { timingSafeEqual } from "node:crypto";
+import { authorized } from "./auth.mjs";
 import {
   AutoScalingClient,
   DescribeAutoScalingGroupsCommand,
@@ -29,15 +29,8 @@ const respond = (statusCode, body) => ({
   body: JSON.stringify(body),
 });
 
-const authorized = (provided) => {
-  if (typeof provided !== "string" || !API_KEY) return false;
-  const a = Buffer.from(provided);
-  const b = Buffer.from(API_KEY);
-  return a.length === b.length && timingSafeEqual(a, b);
-};
-
 export const handler = async (event) => {
-  if (!authorized(event.headers?.["x-api-key"])) {
+  if (!authorized(event.headers?.["x-api-key"], API_KEY)) {
     return respond(401, { error: "unauthorized" });
   }
   const method = event.requestContext.http.method;

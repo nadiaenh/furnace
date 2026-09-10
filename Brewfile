@@ -1,0 +1,7 @@
+brew "awscli"
+brew "pulumi"
+brew "node"
+brew "pnpm"
+brew "gh"
+brew "jq"
+brew "openssl"

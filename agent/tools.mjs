@@ -2,6 +2,7 @@ import { chromium } from "playwright";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { readFile, writeFile } from "node:fs/promises";
+import { ALLOWED_BINARIES, parseCommand } from "./shell-guard.mjs";
 
 const execFileAsync = promisify(execFile);
 
@@ -18,17 +19,15 @@ async function ensurePage() {
   return page;
 }
 
-const ALLOWED_BINARIES = ["curl", "nmap", "dig", "ping", "nslookup"];
-
 async function runShell(command) {
-  const bin = command.trim().split(/\s+/)[0];
-  if (!ALLOWED_BINARIES.includes(bin)) {
-    return `error: '${bin}' is not permitted. allowed: ${ALLOWED_BINARIES.join(", ")}`;
-  }
+  const { argv, error } = parseCommand(command);
+  if (error) return `error: ${error}`;
   try {
-    const { stdout, stderr } = await execFileAsync("/bin/sh", ["-c", command], {
+    // shell:false: argv[0] is executed directly, never through /bin/sh.
+    const { stdout, stderr } = await execFileAsync(argv[0], argv.slice(1), {
       timeout: 30_000,
       maxBuffer: 1024 * 1024,
+      shell: false,
     });
     return (stdout + stderr).slice(0, 8000);
   } catch (err) {

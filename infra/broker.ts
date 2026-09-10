@@ -5,10 +5,8 @@ import { vmPool, sshKeyParam, leaseTtlMinutes } from "./vm-pool";
 const config = new pulumi.Config();
 const apiKey = config.requireSecret("apiKey");
 
-// tracks which instances are currently leased.
 const leaseBucket = new aws.s3.BucketV2("leases", { forceDestroy: true });
 
-// give Lambda permission to assume broker-role.
 const brokerRole = new aws.iam.Role("broker-role", {
   assumeRolePolicy: JSON.stringify({
     Version: "2012-10-17",
@@ -22,13 +20,11 @@ const brokerRole = new aws.iam.Role("broker-role", {
   }),
 });
 
-// give broker basic Lambda execution permissions.
 new aws.iam.RolePolicyAttachment("broker-logs", {
   role: brokerRole.name,
   policyArn: aws.iam.ManagedPolicy.AWSLambdaBasicExecutionRole,
 });
 
-// give broker autoscaling + EC2 + S3 + SSM permissions.
 new aws.iam.RolePolicy("broker-policy", {
   role: brokerRole.id,
   policy: pulumi.jsonStringify({
@@ -62,9 +58,8 @@ new aws.iam.RolePolicy("broker-policy", {
   }),
 });
 
-// the lease/release api.
 const broker = new aws.lambda.Function("broker", {
-  runtime: aws.lambda.Runtime.NodeJS20dX,
+  runtime: aws.lambda.Runtime.NodeJS22dX,
   handler: "handler.handler",
   code: new pulumi.asset.FileArchive("./broker"),
   role: brokerRole.arn,
@@ -80,7 +75,8 @@ const broker = new aws.lambda.Function("broker", {
   },
 });
 
+// Public URL; the handler authenticates every request with a timing-safe x-api-key check.
 export const brokerFunctionUrl = new aws.lambda.FunctionUrl("broker-url", {
   functionName: broker.name,
-  authorizationType: "AWS_IAM",
+  authorizationType: "NONE",
 });
