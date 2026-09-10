@@ -1,4 +1,4 @@
-name: Deploy
+name: Deploy stack
 
 on:
   push:
@@ -18,12 +18,12 @@ env:
 
 jobs:
   deploy:
-    name: Deploy the Pulumi stack and publish a release
+    name: Deploy Pulumi stack and publish a release
     runs-on: ubuntu-latest
     environment: production
     timeout-minutes: 15
     steps:
-      - name: Check out the source
+      - name: Check out source
         uses: actions/checkout@v7
         with:
           persist-credentials: false
@@ -39,7 +39,7 @@ jobs:
           node-version: 24
           cache: pnpm
 
-      - name: Set up the Pulumi CLI
+      - name: Set up Pulumi CLI
         uses: pulumi/actions@v7
 
       - name: Install dependencies
@@ -47,13 +47,13 @@ jobs:
           pnpm install
           cd broker && pnpm install --prod --config.node-linker=hoisted
 
-      - name: Assume the AWS deploy role
+      - name: Assume AWS deploy role
         uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/furnace-gha-deploy
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Log Pulumi into the S3 backend
+      - name: Log Pulumi into S3 backend
         env:
           PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
         run: |
@@ -61,7 +61,7 @@ jobs:
           echo "::add-mask::${account_id}"
           pulumi login "s3://furnace-pulumi-state-${account_id}?region=${AWS_REGION}"
 
-      - name: Apply the stack
+      - name: Apply stack
         env:
           PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
           API_KEY: ${{ secrets.API_KEY }}
@@ -73,15 +73,7 @@ jobs:
           pulumi config set agentGitUrl "${{ github.server_url }}/${{ github.repository }}.git"
           pulumi up --yes
 
-      - name: Record the broker URL for the lease check
-        env:
-          PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          url=$(pulumi stack output brokerUrl)
-          gh variable set BROKER_URL --body "$url"
-
-      - name: Publish the deployment release
+      - name: Publish deployment release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

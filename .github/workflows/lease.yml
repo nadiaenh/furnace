@@ -1,41 +1,84 @@
-name: Lease check
+name: Check a VM lease end to end
 
 on:
   schedule:
-    - cron: '23 7 * * *'
+    - cron: '23 7 * * 1'
   workflow_dispatch:
 
 permissions:
+  id-token: write
   contents: read
 
 concurrency:
   group: lease-check
   cancel-in-progress: false
 
+env:
+  AWS_REGION: us-west-2
+
 jobs:
   lease-and-release:
-    name: Lease a VM, reach the workload and release it
+    name: Lease a VM, reach workload and release it
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Check that the stack is deployed
-        id: check
+      - name: Check out source
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 9
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Set up Pulumi CLI
+        uses: pulumi/actions@v7
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Assume AWS deploy role
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/furnace-gha-deploy
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Log Pulumi into S3 backend
         env:
-          BROKER_URL: ${{ vars.BROKER_URL }}
+          PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
+        run: |
+          account_id=$(aws sts get-caller-identity --query Account --output text)
+          echo "::add-mask::${account_id}"
+          pulumi login "s3://furnace-pulumi-state-${account_id}?region=${AWS_REGION}"
+
+      - name: Read broker URL from Pulumi stack
+        id: stack
+        env:
+          PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
           API_KEY: ${{ secrets.API_KEY }}
         run: |
-          if [ -n "$BROKER_URL" ] && [ -n "$API_KEY" ]; then
+          pulumi stack select dev
+          url=$(pulumi stack output brokerUrl 2>/dev/null || true)
+          if [ -n "$url" ] && [ -n "$API_KEY" ]; then
+            echo "broker_url=$url" >> "$GITHUB_OUTPUT"
             echo "ready=true" >> "$GITHUB_OUTPUT"
           else
             echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::BROKER_URL variable or API_KEY secret is unset; deploy the stack first."
+            echo "::notice::brokerUrl stack output or API_KEY secret is unset; deploy the stack first."
           fi
 
-      - name: Lease a VM from the broker
+      - name: Lease a VM from broker
         id: lease
-        if: steps.check.outputs.ready == 'true'
+        if: steps.stack.outputs.ready == 'true'
         env:
-          BROKER_URL: ${{ vars.BROKER_URL }}
+          BROKER_URL: ${{ steps.stack.outputs.broker_url }}
           API_KEY: ${{ secrets.API_KEY }}
         run: |
           resp=$(curl -sf -X POST "${BROKER_URL}lease" -H "x-api-key: ${API_KEY}")
@@ -45,7 +88,7 @@ jobs:
           echo "$resp" | jq -r .sshKey > key.pem
           chmod 600 key.pem
 
-      - name: Confirm SSH access to the instance
+      - name: Confirm SSH access to instance
         if: steps.lease.outputs.instance_id != ''
         env:
           IP: ${{ steps.lease.outputs.public_ip }}
@@ -58,7 +101,7 @@ jobs:
           done
           echo "::error::SSH never became reachable"; exit 1
 
-      - name: Wait for the workload to answer on port 8080
+      - name: Wait for workload to answer on port 8080
         if: steps.lease.outputs.instance_id != ''
         env:
           IP: ${{ steps.lease.outputs.public_ip }}
@@ -71,10 +114,10 @@ jobs:
           done
           echo "::error::workload port 8080 never answered"; exit 1
 
-      - name: Release the VM
+      - name: Release VM
         if: always() && steps.lease.outputs.instance_id != ''
         env:
-          BROKER_URL: ${{ vars.BROKER_URL }}
+          BROKER_URL: ${{ steps.stack.outputs.broker_url }}
           API_KEY: ${{ secrets.API_KEY }}
           INSTANCE_ID: ${{ steps.lease.outputs.instance_id }}
         run: |
