@@ -64,11 +64,9 @@ jobs:
       - name: Apply stack
         env:
           PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
-          API_KEY: ${{ secrets.API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: |
           pulumi stack select dev
-          pulumi config set --secret apiKey "$API_KEY"
           pulumi config set --secret groqApiKey "$GROQ_API_KEY"
           pulumi config set agentGitUrl "${{ github.server_url }}/${{ github.repository }}.git"
           pulumi up --yes

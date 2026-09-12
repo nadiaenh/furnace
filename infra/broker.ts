@@ -2,9 +2,6 @@ import * as aws from "@pulumi/aws";
 import * as pulumi from "@pulumi/pulumi";
 import { vmPool, sshKeyParam, leaseTtlMinutes } from "./vm-pool";
 
-const config = new pulumi.Config();
-const apiKey = config.requireSecret("apiKey");
-
 const leaseBucket = new aws.s3.BucketV2("leases", { forceDestroy: true });
 
 const brokerRole = new aws.iam.Role("broker-role", {
@@ -66,7 +63,6 @@ const broker = new aws.lambda.Function("broker", {
   timeout: 15,
   environment: {
     variables: {
-      API_KEY: apiKey,
       ASG_NAME: vmPool.name,
       LEASE_BUCKET: leaseBucket.bucket,
       SSH_KEY_PARAM: sshKeyParam.name,
@@ -75,17 +71,7 @@ const broker = new aws.lambda.Function("broker", {
   },
 });
 
-// Public URL; the handler authenticates every request with a timing-safe x-api-key check.
 export const brokerFunctionUrl = new aws.lambda.FunctionUrl("broker-url", {
   functionName: broker.name,
-  authorizationType: "NONE",
-});
-
-// AWS rejects unsigned Function URL requests with 403 unless this permission
-// exists, even with authorizationType NONE.
-new aws.lambda.Permission("broker-url-invoke", {
-  action: "lambda:InvokeFunctionUrl",
-  function: broker.name,
-  principal: "*",
-  functionUrlAuthType: "NONE",
+  authorizationType: "AWS_IAM",
 });

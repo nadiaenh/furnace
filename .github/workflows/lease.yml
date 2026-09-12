@@ -62,16 +62,15 @@ jobs:
         id: stack
         env:
           PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
-          API_KEY: ${{ secrets.API_KEY }}
         run: |
           pulumi stack select dev
           url=$(pulumi stack output brokerUrl 2>/dev/null || true)
-          if [ -n "$url" ] && [ -n "$API_KEY" ]; then
+          if [ -n "$url" ]; then
             echo "broker_url=$url" >> "$GITHUB_OUTPUT"
             echo "ready=true" >> "$GITHUB_OUTPUT"
           else
             echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::brokerUrl stack output or API_KEY secret is unset; deploy the stack first."
+            echo "::notice::brokerUrl stack output is unset; deploy the stack first."
           fi
 
       - name: Lease a VM from broker
@@ -79,9 +78,11 @@ jobs:
         if: steps.stack.outputs.ready == 'true'
         env:
           BROKER_URL: ${{ steps.stack.outputs.broker_url }}
-          API_KEY: ${{ secrets.API_KEY }}
         run: |
-          resp=$(curl -sf -X POST "${BROKER_URL}lease" -H "x-api-key: ${API_KEY}")
+          resp=$(curl -sf -X POST "${BROKER_URL}lease" \
+            --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}" \
+            --aws-sigv4 "aws:amz:${AWS_REGION}:lambda" \
+            -H "x-amz-security-token: ${AWS_SESSION_TOKEN}")
           echo "$resp" | jq -e .instanceId > /dev/null
           echo "instance_id=$(echo "$resp" | jq -r .instanceId)" >> "$GITHUB_OUTPUT"
           echo "public_ip=$(echo "$resp" | jq -r .publicIp)" >> "$GITHUB_OUTPUT"
@@ -118,8 +119,10 @@ jobs:
         if: always() && steps.lease.outputs.instance_id != ''
         env:
           BROKER_URL: ${{ steps.stack.outputs.broker_url }}
-          API_KEY: ${{ secrets.API_KEY }}
           INSTANCE_ID: ${{ steps.lease.outputs.instance_id }}
         run: |
-          curl -sf -X POST "${BROKER_URL}release" -H "x-api-key: ${API_KEY}" \
+          curl -sf -X POST "${BROKER_URL}release" \
+            --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}" \
+            --aws-sigv4 "aws:amz:${AWS_REGION}:lambda" \
+            -H "x-amz-security-token: ${AWS_SESSION_TOKEN}" \
             -d "{\"instanceId\": \"${INSTANCE_ID}\"}" || echo "::warning::release call failed; the lease will expire on its own"

@@ -1,4 +1,3 @@
-import { authorized } from "./auth.mjs";
 import {
   AutoScalingClient,
   DescribeAutoScalingGroupsCommand,
@@ -19,7 +18,7 @@ const ec2Client = new EC2Client();
 const s3Client = new S3Client();
 const ssmClient = new SSMClient();
 
-const { API_KEY, ASG_NAME, LEASE_BUCKET, SSH_KEY_PARAM } = process.env;
+const { ASG_NAME, LEASE_BUCKET, SSH_KEY_PARAM } = process.env;
 const LEASE_TTL_MS = Number(process.env.LEASE_TTL_MINUTES ?? "60") * 60 * 1000;
 const LEASE_PREFIX = "leases/";
 
@@ -30,9 +29,6 @@ const respond = (statusCode, body) => ({
 });
 
 export const handler = async (event) => {
-  if (!authorized(event.headers?.["x-api-key"], API_KEY)) {
-    return respond(401, { error: "unauthorized" });
-  }
   const method = event.requestContext.http.method;
   const path = event.rawPath;
   const rawBody = event.isBase64Encoded
