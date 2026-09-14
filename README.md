@@ -2,7 +2,7 @@
 
 **furnace** is an AWS-based Pulumi-self-hosted VM rental service meant to be served on the public internet (unlike [cinders](https://github.com/nadiaenh/cinders/tree/main)).
 
-<p align="center"><img width="250" src="assets/furnace.gif" alt="A pixel art animation of a furnace"></p>
+<p align="center"><img width="256" src="assets/furnace.gif" alt="A pixel art animation of a furnace"></p>
 
 ## Setup
 
